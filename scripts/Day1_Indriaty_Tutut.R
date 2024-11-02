@@ -1,33 +1,18 @@
----
-title: "30DayMapChallenge"
-author: "Tutut Indriaty"
-date: "`r Sys.Date()`"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
 library(sf)
 library(ggplot2)
 library(rnaturalearth)
 library(glue)
 library(ggtext)
 library(dplyr)
+library(showtext)
 
-```
-
-## Day 1 - Point
-
-Hong Kong has the best public transit in the world according to Urban Mobility Index.
-
-```{r day1}
 UMI <- read.csv ("data/UMI.csv")
 
 UMI_sf <- st_as_sf(UMI, coords = c("Long", "Lat"), crs = 4326)
 UMI_sf$Public_Transit_Rank <- rank(-UMI_sf$Public_Transit, ties.method = "min")
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
+world_transformed <- st_transform(world, crs = 4326)
 
 highlight_cities <- c("Hong Kong", "Zurich", "Singapore")
 highlight_colors <- c("red", "hotpink", "orange")
@@ -35,10 +20,6 @@ highlight_colors <- c("red", "hotpink", "orange")
 UMI_sf$highlight_color <- ifelse(UMI_sf$City %in% highlight_cities,
                                  highlight_colors[match(UMI_sf$City, highlight_cities)],
                                  "grey")
-
-world_transformed <- st_transform(world, crs = 4326)
-#UMI_transformed <- st_transform(UMI_sf, crs = 54042)
-
 
 # Plotting
 ggplot(data = world_transformed) +
@@ -63,13 +44,15 @@ ggplot(data = world_transformed) +
   annotate("text", x = 60.8, y = 1.4, label = "Singapore\nIndex: 73.9", color = "orange", size = 3, fontface = "bold", hjust = 0) +
   coord_sf(crs = st_crs(4326), xlim = c(-180, 180), ylim = c(-60, 90)) +  
   theme_minimal() +
-  theme(panel.grid = element_blank(),
+  theme(text = element_text(family = "Book Antiqua"),
+        panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(size = 16, face = "bold"),
+        plot.title = element_text(size = 18, face = "bold"),
         plot.subtitle = ggtext::element_textbox_simple(margin = margin(5, 0, 5, 0), size = 12, lineheight = 1.2),
-        plot.caption = element_text(size = 9, hjust = 0.5, margin = margin(5, 0, 5, 0)),
+        plot.caption = element_text(size = 7, hjust = 1, margin = margin(5, 0, 5, 0)),
+        plot.caption.position = "plot",
         legend.position = c(0.1,0.2),
         legend.title = element_text(size = 10, face = "bold"),
         legend.background = element_rect(fill = "white", color = FALSE)) +
@@ -77,55 +60,6 @@ ggplot(data = world_transformed) +
        subtitle = "1st <span style='color:red;'>Hong Kong</span>, 
                    2nd <span style='color:hotpink;'>Zurich</span>, 
                    and 3rd <span style='color:orange;'>Singapore</span>",
-       caption = "Source: Urban Mobility Index 2023",
+       caption = "Source: Urban Mobility Index 2023\nTutut Indriaty\n#30DayMapChallenge",
        color = "Transit Readiness Rank", size = "Transit Category") +
   guides(size = "none")
-
-```
-
-## Day 2 - Line
-
-You can also embed plots, for example:
-
-```{r day2, echo=FALSE}
-mtr_rail <- read.csv ("data/mtr_lines_and_stations.csv")
-light_rail <- read.csv ("data/light_rail_routes_and_stops.csv")
-mtr_bus <- read.csv ("data/mtr_bus_stops.csv")
-
-mtr_bus_sf <- st_as_sf(mtr_bus, coords = c("STATION_LONGITUDE", "STATION_LATITUDE"), crs = 4326) %>% 
-  st_transform(crs = 2326)
-
-hk <- st_read("data/hksar_18_district_boundary.json")
-
-hk_union <- st_union(hk$geometry)
-
-hk_valid <- st_make_valid(hk)
-
-if (any(!st_is_valid(hk_valid))) {
-  warning("Some geometries are still invalid after attempting to fix them.")
-}
-
-# Step 3: Proceed with the union of valid geometries
-hk_union <- st_union(hk_valid$geometry)
-
-# Step 4: Convert hk_union into an `sf` object to use in ggplot
-hk_union_sf <- st_as_sf(hk_union, crs = st_crs(hk))
-
-
-
-ggplot() +
-  # Add the Hong Kong boundary union (single polygon)
-  geom_sf(data = hk_union_sf, fill = "lightgray", color = "black", size = 0.3) +
-  
-  # Add the MTR bus stops as points
-  geom_sf(data = mtr_bus_sf, aes(color = "MTR Bus Stops"), size = 1.5, shape = 21, fill = "blue") +
-  
-  # Customize the map's theme and add a title
-  labs(title = "Hong Kong Map with MTR Bus Stops",
-       color = "Bus Stops") +
-  theme_minimal() +
-  scale_color_manual(values = c("MTR Bus Stops" = "blue"))
-
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
